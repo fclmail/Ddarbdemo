@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DODO Flash Loan Arbitrage Demo</title>
+  <style>
+    body { background-color: #0a1f0a; color: white; font-family: Arial, sans-serif; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #333; text-align: center; }
+    th { background-color: #004d00; }
+    .profitable { background-color: #006600; color: white; font-weight: bold; }
+    input[type="number"] { width: 80px; }
+  </style>
+</head>
+<body>
+  <h2>DODO Flash Loan Arbitrage Demo</h2>
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <label>
+    <input type="checkbox" id="autotrade" /> Auto Trade if Profitable
+  </label>
+  <label>
+    Min Profit %: <input type="number" id="minProfit" value="0.01" step="0.01" min="0.01" />%
+  </label>
+  <p>Accumulated Profit: <span id="accProfit">0.00</span> USDC</p>
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th>Token</th>
+        <th>Buy DEX</th>
+        <th>Sell DEX</th>
+        <th>Buy Price</th>
+        <th>Sell Price</th>
+        <th>Profit (USDC)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let accumulatedProfit = 0;
+
+    async function connectWallet() {
+      alert("Demo Wallet Connected");
+    }
+
+    const tokens = [
+      { symbol: "AAVE", address: "0xd6df932a45c0f255f85145f286ea0b292b21c90b" }
+    ];
+
+    const routers = [
+      { name: "QuickSwap" },
+      { name: "SushiSwap" },
+      { name: "Uniswap" }
+    ];
+
+    function simulatePrice(base, margin) {
+      return base * (1 + margin);
+    }
+
+    function loop() {
+      const minProfitPercent = parseFloat(document.getElementById("minProfit").value);
+      const tbody = document.querySelector("#resultsTable tbody");
+      tbody.innerHTML = "";
+      const loanAmount = 10000; // Simulated flash loan in USDC
+
+      for (let token of tokens) {
+        const buyRouter = routers[0];
+        const sellRouter = routers[1];
+
+        const buyPrice = 1.0;
+        const sellPrice = simulatePrice(buyPrice, 0.0015); // guaranteed 0.15% profit
+        const tokenAmount = loanAmount / buyPrice;
+        const receivedUSDC = tokenAmount * sellPrice;
+        const profit = receivedUSDC - loanAmount;
+        const profitPercent = (profit / loanAmount) * 100;
+
+        const row = document.createElement("tr");
+        if (profitPercent >= minProfitPercent) {
+          row.classList.add("profitable");
+        }
+
+        row.innerHTML = `
+          <td>${token.symbol}</td>
+          <td>${buyRouter.name}</td>
+          <td>${sellRouter.name}</td>
+          <td>${buyPrice.toFixed(4)}</td>
+          <td>${sellPrice.toFixed(4)}</td>
+          <td>${profit.toFixed(4)}</td>
+          <td>${profitPercent >= minProfitPercent ? "Profitable" : "Not Profitable"}</td>
+        `;
+        tbody.appendChild(row);
+
+        if (profitPercent >= minProfitPercent && document.getElementById("autotrade").checked) {
+          accumulatedProfit += profit;
+          document.getElementById("accProfit").textContent = accumulatedProfit.toFixed(4);
+        }
+      }
+    }
+
+    setInterval(loop, 5000);
+  </script>
+</body>
+</html>
