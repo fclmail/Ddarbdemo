@@ -16,7 +16,7 @@
   <h2>DODO Flash Loan Arbitrage Demo</h2>
   <button onclick="connectWallet()">Connect Wallet</button>
   <label>
-    <input type="checkbox" id="autotrade" /> Auto Trade if Profitable
+    <input type="checkbox" id="autotrade" checked /> Auto Trade if Profitable
   </label>
   <label>
     Min Profit %: <input type="number" id="minProfit" value="0.01" step="0.01" min="0.01" />%
@@ -25,6 +25,7 @@
   <table id="resultsTable">
     <thead>
       <tr>
+        <th>Time</th>
         <th>Token</th>
         <th>Buy DEX</th>
         <th>Sell DEX</th>
@@ -39,6 +40,7 @@
 
   <script>
     let accumulatedProfit = 0;
+    let maxRows = 20;
 
     async function connectWallet() {
       alert("Demo Wallet Connected");
@@ -58,47 +60,57 @@
       return base * (1 + margin);
     }
 
-    function loop() {
+    function getTime() {
+      const now = new Date();
+      return now.toLocaleTimeString();
+    }
+
+    function simulateTrade() {
       const minProfitPercent = parseFloat(document.getElementById("minProfit").value);
       const tbody = document.querySelector("#resultsTable tbody");
-      tbody.innerHTML = "";
-      const loanAmount = 10000; // Simulated flash loan in USDC
+      const loanAmount = 10000; // Flash loan
 
-      for (let token of tokens) {
-        const buyRouter = routers[0];
-        const sellRouter = routers[1];
+      const token = tokens[0];
+      const buyRouter = routers[0];
+      const sellRouter = routers[1];
 
-        const buyPrice = 1.0;
-        const sellPrice = simulatePrice(buyPrice, 0.0015); // guaranteed 0.15% profit
-        const tokenAmount = loanAmount / buyPrice;
-        const receivedUSDC = tokenAmount * sellPrice;
-        const profit = receivedUSDC - loanAmount;
-        const profitPercent = (profit / loanAmount) * 100;
+      const buyPrice = 1.0;
+      const sellPrice = simulatePrice(buyPrice, 0.0015); // Simulated profit
+      const tokenAmount = loanAmount / buyPrice;
+      const receivedUSDC = tokenAmount * sellPrice;
+      const profit = receivedUSDC - loanAmount;
+      const profitPercent = (profit / loanAmount) * 100;
 
-        const row = document.createElement("tr");
-        if (profitPercent >= minProfitPercent) {
-          row.classList.add("profitable");
-        }
-
-        row.innerHTML = `
-          <td>${token.symbol}</td>
-          <td>${buyRouter.name}</td>
-          <td>${sellRouter.name}</td>
-          <td>${buyPrice.toFixed(4)}</td>
-          <td>${sellPrice.toFixed(4)}</td>
-          <td>${profit.toFixed(4)}</td>
-          <td>${profitPercent >= minProfitPercent ? "Profitable" : "Not Profitable"}</td>
-        `;
-        tbody.appendChild(row);
-
-        if (profitPercent >= minProfitPercent && document.getElementById("autotrade").checked) {
+      const row = document.createElement("tr");
+      if (profitPercent >= minProfitPercent) {
+        row.classList.add("profitable");
+        if (document.getElementById("autotrade").checked) {
           accumulatedProfit += profit;
           document.getElementById("accProfit").textContent = accumulatedProfit.toFixed(4);
         }
       }
+
+      row.innerHTML = `
+        <td>${getTime()}</td>
+        <td>${token.symbol}</td>
+        <td>${buyRouter.name}</td>
+        <td>${sellRouter.name}</td>
+        <td>${buyPrice.toFixed(4)}</td>
+        <td>${sellPrice.toFixed(4)}</td>
+        <td>${profit.toFixed(4)}</td>
+        <td>${profitPercent >= minProfitPercent ? "Profitable" : "Not Profitable"}</td>
+      `;
+
+      // Add row at top
+      tbody.insertBefore(row, tbody.firstChild);
+
+      // Remove older rows if over limit
+      while (tbody.rows.length > maxRows) {
+        tbody.removeChild(tbody.lastChild);
+      }
     }
 
-    setInterval(loop, 5000);
+    setInterval(simulateTrade, 10000); // Every 10 seconds
   </script>
 </body>
 </html>
